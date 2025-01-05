@@ -1,8 +1,8 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, hash::Hash};
 
 advent_of_code::solution!(5);
 
-pub fn part_one(input: &str) -> Option<u32> {
+pub fn parse_input(input: &str) -> (HashSet<(usize, usize)>, &str) {
     let (orderings, updates) = input.split_once("\n\n").unwrap();
     // println!("Orderings: {orderings}");
     // println!("Updates: {updates}");
@@ -18,15 +18,26 @@ pub fn part_one(input: &str) -> Option<u32> {
         })
         .collect();
 
+    (orderings, updates)
+}
+
+pub fn parse_updates(line: &str) -> Vec<usize> {
+    line
+            .split(",")
+            .map(|e| e.parse().unwrap())
+            .collect::<Vec<usize>>()
+}
+
+pub fn part_one(input: &str) -> Option<u32> {
+
+    let (orderings, updates) = parse_input(input);
+
     // println!("Orderings set: {:?}", orderings);
 
     let contains = |x: &usize, y: &usize| orderings.contains(&(*x, *y));
 
     Some(updates.lines().filter_map(|line| {
-        let update = line
-            .split(",")
-            .map(|e| e.parse().unwrap())
-            .collect::<Vec<usize>>();
+        let update = parse_updates(line);
         // println!("Update: {:?}", update);
         if update.is_sorted_by(contains).then_some(std::cmp::Ordering::Less).is_some() {
             let len = update.len();
@@ -43,8 +54,30 @@ pub fn part_one(input: &str) -> Option<u32> {
 
 }
 
-pub fn part_two(_input: &str) -> Option<u32> {
-    None
+pub fn part_two(input: &str) -> Option<u32> {
+    let (orderings, updates) = parse_input(input);
+    let contains = |x: &usize, y: &usize| {
+        let (x, y) = (*x, *y);
+        if orderings.contains(&(x, y)) {
+            std::cmp::Ordering::Less
+        } else if orderings.contains(&(y, x)){
+            std::cmp::Ordering::Greater
+        } else {
+            std::cmp::Ordering::Equal
+        }
+    };
+
+    Some(updates.lines().filter_map(|line| {
+        let mut update = parse_updates(line);
+        if update.is_sorted_by(|a, b| contains(a,b) != std::cmp::Ordering::Greater) {
+            Some(0 as u32)
+        } else {
+            update.sort_by(contains);
+            Some(update[update.len()/2] as u32)
+        }
+    })
+    .sum())
+
 }
 
 #[cfg(test)]
