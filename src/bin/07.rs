@@ -1,32 +1,9 @@
-use core::panic;
-use std::collections::HashMap;
-
 advent_of_code::solution!(7);
 
-fn parse_input(input: &str) -> HashMap<usize, Vec<usize>> {
-    input
-        .lines()
-        .map(|line| {
-            //println!("line: {}", line);
-            let mut split = line.split(":");
-            if let (Some(test_values), Some(values), None) =
-                (split.next(), split.next(), split.next())
-            {
-                let test_value = test_values.parse().unwrap();
-                let nums = values
-                    .split_whitespace()
-                    .map(|n| n.parse().unwrap())
-                    .collect();
-                (test_value, nums)
-            } else {
-                panic!("Error parsing data")
-            }
-        })
-        .collect()
-}
 
-fn is_possible(curr: &usize, target: &usize, values: &[usize]) -> bool {
-    if values.is_empty() {
+
+fn is_possible(curr: &usize, target: &usize, rest: &[usize]) -> bool {
+    if rest.is_empty() {
         return curr == target;
     }
 
@@ -34,28 +11,75 @@ fn is_possible(curr: &usize, target: &usize, values: &[usize]) -> bool {
         return false;
     }
 
-    let (first, rest) = values.split_first().unwrap();
+    let (first, rest) = rest.split_first().unwrap();
 
-    is_possible(&(curr * first), target, rest)
-        || is_possible(&(curr + first), target, rest)
+    is_possible(&(curr * first), target, rest) || is_possible(&(curr + first), target, rest)
 }
+
+fn is_possible_concat(curr: &usize, target: &usize, rest: &[usize]) -> bool {
+    if rest.is_empty() {
+        return curr == target;
+    }
+
+    if curr > target {
+        return false;
+    }
+
+    let (first, rest) = rest.split_first().unwrap();
+
+    is_possible_concat(&(curr * first), target, rest)
+    || is_possible_concat(&(curr + first), target, rest)
+    || is_possible_concat(&concat(*curr,* first), target, rest)
+
+}
+
+fn concat(a: usize, b: usize) -> usize {
+    // Calculate the number of digits in b
+    let num_digits = (b as f64).log10().floor() as u32 + 1;
+
+    // Combine the numbers using math
+    a * 10usize.pow(num_digits) + b
+}
+
+
+// fn check(input: &str, filter: Fn)
+fn check<F>(filter: F, input: &str) -> usize
+where
+    F: Fn(&usize, &usize, &[usize]) -> bool {
+        input
+        .lines()
+        .filter_map(|line| {
+            //println!("line: {}", line);
+            let mut split = line.split(":");
+            if let (Some(test_values), Some(values), None) =
+                (split.next(), split.next(), split.next())
+            {
+                let test_value: usize = test_values.parse().unwrap();
+                let nums = values
+                    .split_whitespace()
+                    .map(|n| n.parse().unwrap())
+                    .collect::<Vec<usize>>();
+
+                let (first, rest) = nums.split_first().unwrap();
+                if filter(first, &test_value, rest) {
+                    return Some(test_value);
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        })
+        .sum()
+    }
+
 
 pub fn part_one(input: &str) -> Option<usize> {
-    let map = parse_input(input);
-    Some(map.into_iter()
-        .filter_map(|(key, val)| {
-            if let Some(first) = val.first() {
-                if is_possible(first, &key, &val) {
-                    return Some(key);
-                }
-            }
-            None
-        })
-        .sum())
+    Some(check(is_possible, input))
 }
 
-pub fn part_two(_input: &str) -> Option<u32> {
-    None
+pub fn part_two(input: &str) -> Option<usize> {
+    Some(check(is_possible_concat, input))
 }
 
 #[cfg(test)]
