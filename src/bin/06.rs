@@ -49,13 +49,15 @@ impl Grid {
         if char == &'#' {
             //if i see a obstacle, i can't move at all, just change the direction.
             curr_direction.turn_right();
-            return Some((next_row, curr_col));
+            return Some((curr_row, curr_col));
         }
 
         Some((next_row, next_col))
     }
 }
 
+
+#[derive(Clone, PartialEq, Eq, Hash, Copy)]
 enum Direction {
     Up,
     Right,
@@ -88,9 +90,11 @@ pub fn part_one(input: &str) -> Option<u32> {
 
     let mut visited = HashSet::new();
 
-    visited.insert((guard_col, guard_col));
+    visited.insert((guard_row, guard_col));
 
-    while let Some((next_row, next_col)) = grid.get_next_position((guard_row, guard_col), &mut direction) {
+    while let Some((next_row, next_col)) =
+        grid.get_next_position((guard_row, guard_col), &mut direction)
+    {
         guard_row = next_row;
         guard_col = next_col;
 
@@ -98,11 +102,57 @@ pub fn part_one(input: &str) -> Option<u32> {
     }
 
     Some(visited.len() as u32)
-
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    None
+    let mut grid = Grid::new(input);
+
+    let (mut guard_row, mut guard_col) = grid.get_guard_position();
+
+    let mut direction = Direction::Up;
+
+    let mut visited = HashSet::new();
+    let mut count = 0;
+
+    while let Some((next_row, next_col)) = grid.get_next_position((guard_row,guard_col), &mut direction) {
+        visited.insert((guard_row, guard_col));
+
+        if !visited.contains(&(next_row, next_col)) {
+            grid.tiles[next_row][next_col] = '#';
+
+            if enters_loop(&grid, (guard_row, guard_col), direction) {
+                count += 1;
+            }
+            grid.tiles[next_row][next_col] = '.';
+        }
+        (guard_row, guard_col) = (next_row, next_col);
+    }
+   Some(count as u32)
+}
+
+fn enters_loop(
+    grid: &Grid,
+    (start_row, start_col): (usize, usize),
+    start_direction: Direction,
+) -> bool {
+    let mut visited_obstacles: Vec<(usize, usize, Direction)> = Vec::new();
+    let mut direction = start_direction;
+
+    let (mut guard_row, mut guard_col) = (start_row, start_col);
+
+    while let Some((next_row, next_col)) =
+        grid.get_next_position((guard_row, guard_col), &mut direction)
+    {
+        if (guard_row, guard_col) == (next_row, next_col) {
+            if visited_obstacles.contains(&(guard_row, guard_col, direction)) {
+                return true;
+            }
+
+            visited_obstacles.push((guard_row, guard_col, direction));
+        }
+    (guard_row, guard_col) = (next_row, next_col);
+    }
+    false
 }
 
 #[cfg(test)]
