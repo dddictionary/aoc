@@ -1,5 +1,7 @@
 use std::{collections::{HashMap, HashSet}, ops::{Add, Sub}};
 
+use itertools::Itertools;
+
 
 advent_of_code::solution!(8);
 
@@ -42,7 +44,7 @@ impl Antenna {
     }
 
     fn within_bounds(&self, height: i64, width: i64) -> bool {
-        0 <= self.col && self.col <= width && 0 <= self.row && self.row <= height
+        0 <= self.col && self.col < width && 0 <= self.row && self.row < height
     }
 }
 
@@ -65,8 +67,26 @@ pub fn part_one(input: &str) -> Option<u32> {
     let mut antinodes: HashSet<Antenna> = HashSet::new();
 
     for positions in antennas.values() {
-        for pair in positions.iter().com
+        for pair in positions.iter().combinations(2) {
+            let antenna_1 = *pair[0];
+            let antenna_2 = *pair[1];
+
+            let diff = antenna_2 - antenna_1;
+
+            let antinode_1 = antenna_2 + diff;
+            let antinode_2 = antenna_1 - diff;
+
+            if antinode_1.within_bounds(height, width) {
+                antinodes.insert(antinode_1);
+            }
+
+            if antinode_2.within_bounds(height, width) {
+                antinodes.insert(antinode_2);
+            }
+        }
     }
+    Some(antinodes.len() as u32)
+
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
